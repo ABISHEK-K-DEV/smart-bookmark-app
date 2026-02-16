@@ -32,6 +32,7 @@ export default function BookmarkList({ user }) {
           event: "*",
           schema: "public",
           table: "bookmarks",
+          filter: `user_id=eq.${user.id}`, // Only listen to current user's bookmarks
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
