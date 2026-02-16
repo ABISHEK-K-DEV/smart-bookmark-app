@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Smart Bookmark App
 
-## Getting Started
+A simple, real-time bookmark manager built with Next.js, Supabase, and Tailwind CSS. This project fulfills the requirement for a coding assessment submission.
 
-First, run the development server:
+Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Frontend: Next.js 15 (App Router), React JSX
+- Styling: Tailwind CSS v4
+- Backend: Supabase (Database, Auth, Realtime)
+- Deployment: Vercel
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+How to Run Locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  Clone the repository.
+2.  Install dependencies:
+    bash
+    npm install
+    
+3.  Set up environment variables in `.env.local`:
+    env
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    
+4.  Run the development server:
+    bash
+    npm run dev
+    
+5.  Open [http://localhost:3000](http://localhost:3000).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Problems I Encountered & How I Solved Them
 
-## Learn More
+1. Configuring Google OAuth Redirects
+Problem: During initial testing, Google login failed with a generic error or redirected incorrectly.
+Solution: I realized that both the local URL (`http://localhost:3000/auth/callback`) and the production Vercel URL needed to be explicitly added to the Authorized redirect URIs in the Google Cloud Console. I also had to insure the Supabase URL was correct (using `.co` not `.io` or typos).
 
-To learn more about Next.js, take a look at the following resources:
+2. Ensuring Real-time Updates Across Tabs
+Problem: Bookmarks added in one tab didn't appear in another tab immediately without refreshing.
+Solution: I implemented Supabase Realtime subscriptions in the `BookmarkList` component. I subscribed to `INSERT`, `UPDATE`, and `DELETE` events on the `bookmarks` table and updated the React state accordingly. This ensures the UI is always in sync with the database.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. Row Level Security (RLS) policies
+Problem: Ensuring user privacy so User A cannot see User B's bookmarks.
+Solution: I enabled RLS on the `bookmarks` table in Supabase and wrote specific policies (e.g., `using (auth.uid() = user_id)`) for SELECT, INSERT, UPDATE, and DELETE operations. This enforces data isolation at the database level.
