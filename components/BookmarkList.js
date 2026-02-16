@@ -35,13 +35,17 @@ export default function BookmarkList({ user }) {
           filter: `user_id=eq.${user.id}`, // Only listen to current user's bookmarks
         },
         (payload) => {
+          console.log("🔥 Realtime event received:", payload);
           if (payload.eventType === "INSERT") {
+            console.log("✅ Adding new bookmark:", payload.new);
             setBookmarks((current) => [payload.new, ...current]);
-          } else if (payload.eventType === "DELETE") { // Changed from DELETE to match payload
+          } else if (payload.eventType === "DELETE") {
+            console.log("🗑️ Deleting bookmark:", payload.old.id);
             setBookmarks((current) =>
               current.filter((bookmark) => bookmark.id !== payload.old.id)
             );
-          } else if (payload.eventType === "UPDATE") { // Changed from UPDATE to match payload
+          } else if (payload.eventType === "UPDATE") {
+            console.log("✏️ Updating bookmark:", payload.new);
             setBookmarks((current) =>
               current.map((bookmark) =>
                 bookmark.id === payload.new.id ? payload.new : bookmark
@@ -50,7 +54,9 @@ export default function BookmarkList({ user }) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
