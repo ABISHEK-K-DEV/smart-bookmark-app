@@ -1,14 +1,17 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Trash2, ExternalLink } from "lucide-react";
 
 export default function BookmarkList({ user }) {
   const [bookmarks, setBookmarks] = useState([]);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    let channel;
+    let authListener;
+
     const fetchBookmarks = async () => {
       const { data, error } = await supabase
         .from("bookmarks")
@@ -23,46 +26,78 @@ export default function BookmarkList({ user }) {
       }
     };
 
-    fetchBookmarks();
+    const subscribeToRealtime = () => {
+      channel = supabase
+        .channel(`realtime-bookmarks-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "bookmarks",
+          },
+          (payload) => {
+            const payloadUserId = payload.new?.user_id ?? payload.old?.user_id;
+            if (payloadUserId !== user.id) return;
 
-    const channel = supabase
-      .channel("realtime bookmarks")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookmarks",
-          filter: `user_id=eq.${user.id}`, // Only listen to current user's bookmarks
-        },
-        (payload) => {
-          console.log("🔥 Realtime event received:", payload);
-          if (payload.eventType === "INSERT") {
-            console.log("✅ Adding new bookmark:", payload.new);
-            setBookmarks((current) => [payload.new, ...current]);
-          } else if (payload.eventType === "DELETE") {
-            console.log("🗑️ Deleting bookmark:", payload.old.id);
-            setBookmarks((current) =>
-              current.filter((bookmark) => bookmark.id !== payload.old.id)
-            );
-          } else if (payload.eventType === "UPDATE") {
-            console.log("✏️ Updating bookmark:", payload.new);
-            setBookmarks((current) =>
-              current.map((bookmark) =>
-                bookmark.id === payload.new.id ? payload.new : bookmark
-              )
-            );
+            console.log("🔥 Realtime event received:", payload);
+            if (payload.eventType === "INSERT") {
+              console.log("✅ Adding new bookmark:", payload.new);
+              setBookmarks((current) => [payload.new, ...current]);
+            } else if (payload.eventType === "DELETE") {
+              console.log("🗑️ Deleting bookmark:", payload.old.id);
+              setBookmarks((current) =>
+                current.filter((bookmark) => bookmark.id !== payload.old.id)
+              );
+            } else if (payload.eventType === "UPDATE") {
+              console.log("✏️ Updating bookmark:", payload.new);
+              setBookmarks((current) =>
+                current.map((bookmark) =>
+                  bookmark.id === payload.new.id ? payload.new : bookmark
+                )
+              );
+            }
           }
+        )
+        .subscribe((status) => {
+          console.log("📡 Subscription status:", status);
+        });
+    };
+
+    const initialize = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user?.id) {
+        await fetchBookmarks();
+        subscribeToRealtime();
+        return;
+      }
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_, newSession) => {
+        if (newSession?.user?.id === user.id) {
+          fetchBookmarks();
+          subscribeToRealtime();
         }
-      )
-      .subscribe((status) => {
-        console.log("📡 Subscription status:", status);
       });
 
-    return () => {
-      supabase.removeChannel(channel);
+      authListener = subscription;
     };
-  }, [user.id]);
+
+    initialize();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      if (authListener) {
+        authListener.unsubscribe();
+      }
+    };
+  }, [supabase, user.id]);
 
   const handleDelete = async (id) => {
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
