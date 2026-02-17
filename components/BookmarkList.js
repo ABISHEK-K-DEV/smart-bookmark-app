@@ -13,6 +13,7 @@ export default function BookmarkList({ user }) {
       const { data, error } = await supabase
         .from("bookmarks")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
