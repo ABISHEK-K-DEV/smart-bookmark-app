@@ -61,7 +61,7 @@ export default function BookmarkList({ user }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [user.id]);
 
   const handleDelete = async (id) => {
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
