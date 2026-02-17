@@ -36,18 +36,22 @@ export default function BookmarkList({ user }) {
             table: "bookmarks",
           },
           (payload) => {
+            console.log("[Realtime bookmarks event]", payload.eventType, payload);
+
             if (payload.eventType === "INSERT") {
               if (payload.new?.user_id !== user.id) return;
               setBookmarks((current) => [payload.new, ...current]);
             } else if (payload.eventType === "DELETE") {
               setBookmarks((current) =>
-                current.filter((bookmark) => bookmark.id !== payload.old.id)
+                current.filter(
+                  (bookmark) => String(bookmark.id) !== String(payload.old?.id)
+                )
               );
             } else if (payload.eventType === "UPDATE") {
               if (payload.new?.user_id !== user.id) return;
               setBookmarks((current) =>
                 current.map((bookmark) =>
-                  bookmark.id === payload.new.id ? payload.new : bookmark
+                  String(bookmark.id) === String(payload.new?.id) ? payload.new : bookmark
                 )
               );
             }
@@ -92,11 +96,30 @@ export default function BookmarkList({ user }) {
   }, [supabase, user.id]);
 
   const handleDelete = async (id) => {
-    const { error } = await supabase.from("bookmarks").delete().eq("id", id);
+    console.log("[Delete] requested id:", id, "user:", user.id);
+
+    const { data, error } = await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select("id");
+
+    console.log("[Delete] response:", { data, error });
+
     if (error) {
       toast.error("Error deleting bookmark");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      toast.error("Delete blocked (check RLS delete policy in Supabase)");
+      console.warn("[Delete] No rows affected. Possible RLS/policy issue.");
+      return;
     } else {
-      setBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
+      setBookmarks((current) =>
+        current.filter((bookmark) => String(bookmark.id) !== String(id))
+      );
       toast.success("Bookmark deleted successfully");
     }
   };
