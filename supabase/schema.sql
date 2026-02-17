@@ -32,3 +32,7 @@ create policy "Users can delete their own bookmarks"
 
 -- Enable Realtime for the bookmarks table
 alter publication supabase_realtime add table bookmarks;
+
+-- Set replica identity to FULL to enable DELETE events in Realtime
+-- This ensures payload.old contains all columns for DELETE operations
+alter table bookmarks replica identity full;

@@ -96,6 +96,8 @@ export default function BookmarkList({ user }) {
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
     if (error) {
       toast.error("Error deleting bookmark");
+    } else {
+      toast.success("Bookmark deleted successfully");
     }
   };
 
