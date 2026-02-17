@@ -36,16 +36,15 @@ export default function BookmarkList({ user }) {
             table: "bookmarks",
           },
           (payload) => {
-            const payloadUserId = payload.new?.user_id ?? payload.old?.user_id;
-            if (payloadUserId !== user.id) return;
-
             if (payload.eventType === "INSERT") {
+              if (payload.new?.user_id !== user.id) return;
               setBookmarks((current) => [payload.new, ...current]);
             } else if (payload.eventType === "DELETE") {
               setBookmarks((current) =>
                 current.filter((bookmark) => bookmark.id !== payload.old.id)
               );
             } else if (payload.eventType === "UPDATE") {
+              if (payload.new?.user_id !== user.id) return;
               setBookmarks((current) =>
                 current.map((bookmark) =>
                   bookmark.id === payload.new.id ? payload.new : bookmark
@@ -97,6 +96,7 @@ export default function BookmarkList({ user }) {
     if (error) {
       toast.error("Error deleting bookmark");
     } else {
+      setBookmarks((current) => current.filter((bookmark) => bookmark.id !== id));
       toast.success("Bookmark deleted successfully");
     }
   };
