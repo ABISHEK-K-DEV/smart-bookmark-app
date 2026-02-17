@@ -1,6 +1,7 @@
 import AuthButton from "@/components/AuthButton";
 import BookmarkList from "@/components/BookmarkList";
 import AddBookmark from "@/components/AddBookmark";
+import AuthSuccess from "@/components/AuthSuccess";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +13,8 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
+      <AuthSuccess />
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -44,17 +46,14 @@ export default async function Home() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!user ? (
-          <div className="text-center py-20">
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-6">
+          <div className="text-center py-16">
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
               Your Bookmarks, <span className="text-blue-600">Reimagined</span>.
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
               Save, organize, and access your favorite links from anywhere. Simple, fast, and secure.
             </p>
-            <div className="inline-block p-4 bg-white rounded-xl shadow-lg border border-gray-100">
-              <p className="text-sm text-gray-500 mb-2">Get started instantly</p>
-              <AuthButton user={null} />
-            </div>
+            
           </div>
         ) : (
           <div>

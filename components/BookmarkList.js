@@ -2,7 +2,8 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useMemo, useState } from "react";
-import { Trash2, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink, Bookmark } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function BookmarkList({ user }) {
   const [bookmarks, setBookmarks] = useState([]);
@@ -19,9 +20,7 @@ export default function BookmarkList({ user }) {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching bookmarks:", error);
-      } else {
+      if (!error) {
         setBookmarks(data || []);
       }
     };
@@ -40,17 +39,13 @@ export default function BookmarkList({ user }) {
             const payloadUserId = payload.new?.user_id ?? payload.old?.user_id;
             if (payloadUserId !== user.id) return;
 
-            console.log("🔥 Realtime event received:", payload);
             if (payload.eventType === "INSERT") {
-              console.log("✅ Adding new bookmark:", payload.new);
               setBookmarks((current) => [payload.new, ...current]);
             } else if (payload.eventType === "DELETE") {
-              console.log("🗑️ Deleting bookmark:", payload.old.id);
               setBookmarks((current) =>
                 current.filter((bookmark) => bookmark.id !== payload.old.id)
               );
             } else if (payload.eventType === "UPDATE") {
-              console.log("✏️ Updating bookmark:", payload.new);
               setBookmarks((current) =>
                 current.map((bookmark) =>
                   bookmark.id === payload.new.id ? payload.new : bookmark
@@ -59,9 +54,7 @@ export default function BookmarkList({ user }) {
             }
           }
         )
-        .subscribe((status) => {
-          console.log("📡 Subscription status:", status);
-        });
+        .subscribe();
     };
 
     const initialize = async () => {
@@ -102,38 +95,52 @@ export default function BookmarkList({ user }) {
   const handleDelete = async (id) => {
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
     if (error) {
-      console.error("Error deleting bookmark:", error);
-      alert("Error deleting bookmark");
+      toast.error("Error deleting bookmark");
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {bookmarks.length === 0 ? (
-        <p className="text-gray-500 text-center py-10">No bookmarks yet.</p>
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-4">
+            <Bookmark className="w-8 h-8 text-blue-600" />
+          </div>
+          <p className="text-gray-600 text-lg font-medium mb-1">No bookmarks yet</p>
+          <p className="text-gray-400 text-sm">Add your first bookmark to get started</p>
+        </div>
       ) : (
         bookmarks.map((bookmark) => (
           <div
             key={bookmark.id}
-            className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow group"
+            className="flex items-start justify-between p-5 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 group"
           >
             <div className="flex-1 min-w-0 mr-4">
               <a
                 href={bookmark.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-lg font-medium text-blue-600 hover:underline truncate block flex items-center gap-2"
+                className="text-lg font-semibold text-gray-900 hover:text-blue-600 truncate block flex items-center gap-2 mb-1 transition-colors duration-200"
               >
                 {bookmark.title || bookmark.url}
-                <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all duration-200" />
               </a>
-              <p className="text-sm text-gray-400 truncate mt-1">
+              <p className="text-sm text-gray-500 truncate mb-2">
                 {bookmark.url}
+              </p>
+              <p className="text-xs text-gray-400">
+                {new Date(bookmark.created_at).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'short', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
               </p>
             </div>
             <button
               onClick={() => handleDelete(bookmark.id)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer"
               title="Delete bookmark"
             >
               <Trash2 className="w-5 h-5" />

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 import { LogOut } from "lucide-react";
+import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 export default function AuthButton({ user }) {
@@ -9,16 +10,28 @@ export default function AuthButton({ user }) {
   const router = useRouter();
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        toast.error("Failed to start Google sign-in");
+      }
+    } catch (error) {
+      toast.error("Unable to connect to authentication service");
+    }
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Error signing out");
+      return;
+    }
+    toast.success("Signed out successfully");
     router.refresh();
   };
 
@@ -29,7 +42,7 @@ export default function AuthButton({ user }) {
       </span>
       <button
         onClick={handleLogout}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 transition-colors bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 transition-all duration-200 bg-red-50 rounded-lg hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 cursor-pointer"
       >
         <LogOut className="w-4 h-4" />
         Sign Out
@@ -38,7 +51,7 @@ export default function AuthButton({ user }) {
   ) : (
     <button
       onClick={handleLogin}
-      className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white transition-all bg-gray-900 rounded-lg hover:bg-gray-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
+      className="flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 bg-gray-900 rounded-lg hover:bg-gray-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 cursor-pointer"
     >
       <svg className="w-4 h-4" viewBox="0 0 24 24">
         <path
