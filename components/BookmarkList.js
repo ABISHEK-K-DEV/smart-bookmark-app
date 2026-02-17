@@ -36,8 +36,6 @@ export default function BookmarkList({ user }) {
             table: "bookmarks",
           },
           (payload) => {
-            console.log("[Realtime bookmarks event]", payload.eventType, payload);
-
             if (payload.eventType === "INSERT") {
               if (payload.new?.user_id !== user.id) return;
               setBookmarks((current) => [payload.new, ...current]);
@@ -96,16 +94,12 @@ export default function BookmarkList({ user }) {
   }, [supabase, user.id]);
 
   const handleDelete = async (id) => {
-    console.log("[Delete] requested id:", id, "user:", user.id);
-
     const { data, error } = await supabase
       .from("bookmarks")
       .delete()
       .eq("id", id)
       .eq("user_id", user.id)
       .select("id");
-
-    console.log("[Delete] response:", { data, error });
 
     if (error) {
       toast.error("Error deleting bookmark");
@@ -114,7 +108,6 @@ export default function BookmarkList({ user }) {
 
     if (!data || data.length === 0) {
       toast.error("Delete blocked (check RLS delete policy in Supabase)");
-      console.warn("[Delete] No rows affected. Possible RLS/policy issue.");
       return;
     } else {
       setBookmarks((current) =>
